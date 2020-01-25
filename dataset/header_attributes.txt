@@ -1,0 +1,10 @@
+x,n,b,g
+n,b,m,g,w
+a,c,d,e,n
+r,o,f
+h,s,n,u
+c,l,r,n
+1,2
+1,2,3,4
+y,n
+y,n
