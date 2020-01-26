@@ -19,40 +19,51 @@ the result (add your answer to the theoretical part).
 
 train_data = []
 test_data = []
-header_attributes = []
-features = []
+header_attributes = dict()
+headers = []
+label_header = 'label'
+labels_column = []
+classifiers = ["G", "B"]
 
 
 def load_data():
-    global train_data, test_data, features
+    global train_data, test_data, headers, label_header, labels_column
     log.info("entered load_data")
-    features = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
+    headers = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
                 'number_of_dependents', 'number_of_existing_credits', 'own_telephone', 'foreign_workers', 'label']
-    train_data = pd.read_csv("dataset/train.txt", header=None, names=features)
-    test_data = pd.read_csv("dataset/val.txt", header=None, names=features)
+    train_data = pd.read_csv("dataset/train.txt", header=None, names=headers)
+    test_data = pd.read_csv("dataset/val.txt", header=None, names=headers)
 
-    features = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
+    headers = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
                 'number_of_dependents', 'number_of_existing_credits', 'own_telephone', 'foreign_workers', 'label']
     # header_attributes = {features[0]: ['x', 'n', 'b', 'g'], features[1]: ['n', 'b', 'm', 'g', 'w'],
     #                      features[2]: ['a', 'c', 'd', 'e', 'n'], features[3]}
     get_attributes('dataset/header_attributes.txt')
-    log.info(f'\nheader_attributes: {header_attributes}')
+    labels_column = train_data[label_header]
+    train_data.drop(label_header, axis=1, inplace=True)
+    # log.info(f'\nlabel_column: \n{label_column}')
+    log.info(f'\nheaders: \n{train_data.columns.tolist()}')
+    log.info(f'\nheader_attributes: \n{header_attributes}')
     log.info('finished to load data')
 
 
 
 def get_attributes(filename):
-    global header_attributes
+    global header_attributes, headers
     file = open(filename).read()
     file = file.split('\n')
-    header_attributes = [line.split(',') for line in file]
+    header_attributes = {header_name: line.split(',') for header_name, line in zip(headers, file)}
+    header_attributes[label_header] = ['G', 'B']
 
 
-def get_enthropy(values, labels):
-    for value, label in zip(values, labels):
-        pass
+def get_header_entropy(header):
+    output_counter_for_header_attributes = dict()
+    for attribute in header_attributes[header]:
+        output_counter_for_header_attributes[attribute] = 0
+    print(output_counter_for_header_attributes)
 
-def get_gains(dataset):
+
+def get_gain(header):
     pass
 
 
@@ -62,9 +73,12 @@ def decision_tree_build():
     tree using the training data. You are allowed to use pandas library.
     :return:
     '''
-
-    for feature in features:
-        pass
+    global headers
+    log.info('entered decision_tree_build')
+    for header in headers:
+        get_header_entropy(header)
+    # get_gain(headers[0])
+    pass
 
 
 def plot_tree():
@@ -92,7 +106,8 @@ def print_accuracy():
 
 def main():
     load_data()
-    print(f'train_data: {train_data}\n test_data: {test_data}')
+    decision_tree_build()
+    # print(f'train_data: {train_data}\n test_data: {test_data}')
 
 
 if __name__ == "__main__":
