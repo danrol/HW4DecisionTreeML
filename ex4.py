@@ -41,7 +41,7 @@ def load_data():
     get_attributes('dataset/header_attributes.txt')
     labels_column = train_data[label_header]
     num_of_rows = len(labels_column)
-    log.info(f'number of columns = {num_of_rows}')
+    log.info(f'number of rows = {num_of_rows}')
     train_data.drop(label_header, axis=1, inplace=True)
     # log.info(f'\nlabel_column: \n{label_column}')
     log.info(f'\nheaders: \n{train_data.columns.tolist()}')
@@ -70,39 +70,51 @@ def init_header_classifiers_counter(header):
 
 
 def count_classifiers_per_attribute(header):
-    output_counter_for_header_attributes = init_header_classifiers_counter(header)
+    classifiers_counter = dict()
+    for classifier in classifiers:
+        classifiers_counter[classifier] = 0
     for attribute, label in zip(train_data[header], labels_column):
         attribute = str(attribute)
         label = str(label)
-        if attribute in output_counter_for_header_attributes:
-            if label in output_counter_for_header_attributes[attribute]:
-                output_counter_for_header_attributes[attribute][label] += 1
-            else:
-                print(f'label = {label} is not in output_counter_for_header_attributes')
-        else:
-            print(f'attribute = {attribute} is not in output_counter_for_header_attributes ')
-        #alternative:
+        classifiers_counter[label] += 1
 
-    return output_counter_for_header_attributes
+    return classifiers_counter
 
 
-def get_probabilities(output_counter_for_header_attributes):
-    probabilities = output_counter_for_header_attributes
+def get_probabilities(header, output_counter_for_header_attributes):
+    probabilities = init_header_classifiers_counter(header)
     for attribute, classifiers_counts in output_counter_for_header_attributes.items():
         for classifier, count in classifiers_counts.items():
-            probabilities[attribute][classifier] = count/num_of_rows
+                probabilities[attribute][classifier] = count/num_of_rows
     return probabilities
 
 
+# def get_probability_for_attribute(probabilities, with_value):
+#     for classifier, count in classifiers_counts.items():
+#         probabilities[attribute][classifier] = count / num_of_rows
+
+
+def get_attribute_value_entropy(header, attribute, probability):
+    global classifiers
+    attribute_value_entropy = 0
+    # for classifier in classifiers:
+    #     attribute_value_entropy =
+
+
+def get_entropy(counters):
+    entropy = 0
+    for counter in counters.values():
+        probability = counter/num_of_rows
+        if probability !=0:
+            entropy += -probability * np.log2(probability)
+    return entropy
+
+
 def get_header_entropy(header):
-    output_counter_for_header_attributes = count_classifiers_per_attribute(header)
-    log.info(f'\noutput_counter_for_header_attributes in header = {header}: \n{output_counter_for_header_attributes}')
-    probabilities = get_probabilities(output_counter_for_header_attributes)
-    log.info(f'\nprobabilities for header = {header}:\n{probabilities}')
+    classifiers_counters = count_classifiers_per_attribute(header)
+    log.info(f'\nclassifiers_counters in header = {header}: \n{classifiers_counters}')
     header_entropy = 0
-    for classifier_probabilities in probabilities.values():
-        for classifier, probability in classifier_probabilities.items():
-            header_entropy = -probability*np.log2(probability)
+    header_entropy += get_entropy(classifiers_counters)
     log.info(f'header = {header}, header_entropy = {header_entropy}')
 
 
