@@ -69,24 +69,27 @@ def init_header_classifiers_counter(header):
     return output_counter_for_header_attributes
 
 
-def count_classifiers_per_attribute(header):
+def count_classifiers_per_attribute(header, desired_attribute=None):
     classifiers_counter = dict()
     for classifier in classifiers:
         classifiers_counter[classifier] = 0
     for attribute, label in zip(train_data[header], labels_column):
         attribute = str(attribute)
         label = str(label)
-        classifiers_counter[label] += 1
+        if desired_attribute is not None and attribute is desired_attribute:
+            classifiers_counter[label] += 1
+        elif desired_attribute is None:
+            classifiers_counter[label] += 1
 
     return classifiers_counter
 
 
-def get_probabilities(header, output_counter_for_header_attributes):
-    probabilities = init_header_classifiers_counter(header)
-    for attribute, classifiers_counts in output_counter_for_header_attributes.items():
-        for classifier, count in classifiers_counts.items():
-                probabilities[attribute][classifier] = count/num_of_rows
-    return probabilities
+# def get_probabilities(header, output_counter_for_header_attributes):
+#     probabilities = init_header_classifiers_counter(header)
+#     for attribute, classifiers_counts in output_counter_for_header_attributes.items():
+#         for classifier, count in classifiers_counts.items():
+#                 probabilities[attribute][classifier] = count/num_of_rows
+#     return probabilities
 
 
 # def get_probability_for_attribute(probabilities, with_value):
@@ -94,11 +97,11 @@ def get_probabilities(header, output_counter_for_header_attributes):
 #         probabilities[attribute][classifier] = count / num_of_rows
 
 
-def get_attribute_value_entropy(header, attribute, probability):
-    global classifiers
-    attribute_value_entropy = 0
-    # for classifier in classifiers:
-    #     attribute_value_entropy =
+def get_attribute_value_entropy(header, attribute):
+    classifiers_counters = count_classifiers_per_attribute(header, attribute)
+    value_entropy = get_entropy(classifiers_counters)
+    log.info(f'header = {header}, attribute = {attribute}, entropy = {value_entropy}')
+
 
 
 def get_entropy(counters):
@@ -111,10 +114,9 @@ def get_entropy(counters):
 
 
 def get_header_entropy(header):
-    classifiers_counters = count_classifiers_per_attribute(header)
+    classifiers_counters = count_classifiers_per_attribute(header=header, desired_attribute=None)
     log.info(f'\nclassifiers_counters in header = {header}: \n{classifiers_counters}')
-    header_entropy = 0
-    header_entropy += get_entropy(classifiers_counters)
+    header_entropy = get_entropy(classifiers_counters)
     log.info(f'header = {header}, header_entropy = {header_entropy}')
 
 
@@ -131,7 +133,9 @@ def decision_tree_build():
     global headers
     log.info('entered decision_tree_build')
     for header in headers:
-        get_header_entropy(header)
+        header_entropy = get_header_entropy(header)
+        for attribute in header_attributes[header]:
+            attribute_entropy = get_attribute_value_entropy(header, attribute)
     # get_gain(headers[0])
     pass
 
