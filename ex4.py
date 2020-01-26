@@ -24,10 +24,11 @@ headers = []
 label_header = 'label'
 labels_column = []
 classifiers = ["G", "B"]
+num_of_rows = None
 
 
 def load_data():
-    global train_data, test_data, headers, label_header, labels_column
+    global train_data, test_data, headers, label_header, labels_column, num_of_rows
     log.info("entered load_data")
     headers = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
                 'number_of_dependents', 'number_of_existing_credits', 'own_telephone', 'foreign_workers', 'label']
@@ -39,6 +40,8 @@ def load_data():
     #                      features[2]: ['a', 'c', 'd', 'e', 'n'], features[3]}
     get_attributes('dataset/header_attributes.txt')
     labels_column = train_data[label_header]
+    num_of_rows = len(labels_column)
+    log.info(f'number of columns = {num_of_rows}')
     train_data.drop(label_header, axis=1, inplace=True)
     # log.info(f'\nlabel_column: \n{label_column}')
     log.info(f'\nheaders: \n{train_data.columns.tolist()}')
@@ -78,14 +81,29 @@ def count_classifiers_per_attribute(header):
                 print(f'label = {label} is not in output_counter_for_header_attributes')
         else:
             print(f'attribute = {attribute} is not in output_counter_for_header_attributes ')
+        #alternative:
+
     return output_counter_for_header_attributes
+
+
+def get_probabilities(output_counter_for_header_attributes):
+    probabilities = output_counter_for_header_attributes
+    for attribute, classifiers_counts in output_counter_for_header_attributes.items():
+        for classifier, count in classifiers_counts.items():
+            probabilities[attribute][classifier] = count/num_of_rows
+    return probabilities
 
 
 def get_header_entropy(header):
     output_counter_for_header_attributes = count_classifiers_per_attribute(header)
     log.info(f'\noutput_counter_for_header_attributes in header = {header}: \n{output_counter_for_header_attributes}')
-    for attribute in header_attributes:
-        pass
+    probabilities = get_probabilities(output_counter_for_header_attributes)
+    log.info(f'\nprobabilities for header = {header}:\n{probabilities}')
+    header_entropy = 0
+    for classifier_probabilities in probabilities.values():
+        for classifier, probability in classifier_probabilities.items():
+            header_entropy = -probability*np.log2(probability)
+    log.info(f'header = {header}, header_entropy = {header_entropy}')
 
 
 def get_gain(header):
