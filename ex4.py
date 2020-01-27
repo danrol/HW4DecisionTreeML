@@ -6,6 +6,7 @@ import sys
 import coloredlogs
 import logging
 import os
+import math
 
 coloredlogs.install()
 log = logging.getLogger(__name__)
@@ -20,7 +21,8 @@ the result (add your answer to the theoretical part).
 train_data = []
 test_data = []
 header_attributes = dict()
-headers = []
+headers = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
+                'number_of_dependents', 'number_of_existing_credits', 'own_telephone', 'foreign_workers', 'label']
 label_header = 'label'
 labels_column = []
 classifiers = ["G", "B"]
@@ -30,8 +32,6 @@ num_of_rows = None
 def load_data():
     global train_data, test_data, headers, label_header, labels_column, num_of_rows
     log.info("entered load_data")
-    headers = ['checking_status', 'saving_status', 'credit_history', 'housing', 'job', 'property_magnitude',
-                'number_of_dependents', 'number_of_existing_credits', 'own_telephone', 'foreign_workers', 'label']
     train_data = pd.read_csv("dataset/train.txt", header=None, names=headers)
     headers = headers[:-1]
     # test_data = pd.read_csv("dataset/val.txt", header=None, names=headers)
@@ -69,19 +69,7 @@ def init_header_classifiers_counter(header):
     return output_counter_for_header_attributes
 
 
-def count_classifiers_per_attribute(header, desired_attribute=None):
-    classifiers_counter = dict()
-    for classifier in classifiers:
-        classifiers_counter[classifier] = 0
-    for attribute, label in zip(train_data[header], labels_column):
-        attribute = str(attribute)
-        label = str(label)
-        if desired_attribute is not None and attribute is desired_attribute:
-            classifiers_counter[label] += 1
-        elif desired_attribute is None:
-            classifiers_counter[label] += 1
 
-    return classifiers_counter
 
 
 # def get_probabilities(header, output_counter_for_header_attributes):
@@ -97,31 +85,66 @@ def count_classifiers_per_attribute(header, desired_attribute=None):
 #         probabilities[attribute][classifier] = count / num_of_rows
 
 
-def get_attribute_value_entropy(header, attribute):
-    classifiers_counters = count_classifiers_per_attribute(header, attribute)
-    value_entropy = get_entropy(classifiers_counters)
-    log.info(f'header = {header}, attribute = {attribute}, entropy = {value_entropy}')
+# def get_attribute_entropy(header, attribute):
+#     classifiers_counters = count_classifiers(header, attribute)
+#     entropy = get_entropy(classifiers_counters)
+#     log.info(f'header = {header}, attribute = {attribute}, entropy = {entropy}')
+#     return entropy
 
 
+def count_classifiers(header, desired_attribute=None):
+    classifiers_counter = dict()
+    for classifier in classifiers:
+        classifiers_counter[classifier] = 0
+    for attribute, label in zip(train_data[header], labels_column):
+        attribute = str(attribute)
+        label = str(label)
+        if desired_attribute is not None and attribute == desired_attribute:
+            classifiers_counter[label] += 1
+        elif desired_attribute is None:
+            classifiers_counter[label] += 1
 
-def get_entropy(counters):
-    entropy = 0
-    for counter in counters.values():
+    return classifiers_counter
+
+
+def get_entropy(header, attribute=None):
+    entropy = 0.0
+    classifiers_counters = count_classifiers(header, attribute)
+    for counter in classifiers_counters.values():
         probability = counter/num_of_rows
-        if probability !=0:
+        if probability != 0:
             entropy += -probability * np.log2(probability)
+    log.info(f'entropy = {entropy} for header = {header} and attribute = {attribute}')
     return entropy
 
 
-def get_header_entropy(header):
-    classifiers_counters = count_classifiers_per_attribute(header=header, desired_attribute=None)
-    log.info(f'\nclassifiers_counters in header = {header}: \n{classifiers_counters}')
-    header_entropy = get_entropy(classifiers_counters)
-    log.info(f'header = {header}, header_entropy = {header_entropy}')
+# def get_header_entropy(header):
+#     classifiers_counters = count_classifiers(header=header, desired_attribute=None)
+#     log.info(f'\nclassifiers_counters: = {classifiers_counters} in header = {header}')
+#     header_entropy = get_entropy(classifiers_counters)
+#     log.info(f'header = {header}, header_entropy = {header_entropy}')
+#     return header_entropy
 
 
 def get_gain(header):
-    pass
+    entropy_before_split = get_entropy(header=header, attribute=None)
+    log.info(f'entropy_before_split = {entropy_before_split}')
+    attributes = header_attributes[header]
+    gain = entropy_before_split
+    entropy_after_split = 0
+    for attribute in attributes:
+        count_classifiers_per_attribute = count_classifiers(header=header, desired_attribute=attribute)
+        sum_of_counters = sum(count_classifiers_per_attribute.values())
+        attribute_probability = sum_of_counters/num_of_rows
+        attribute_entropy = get_entropy(header=header, attribute=attribute)
+        # log.info(f'header = {header}, attribute = {attribute}, attribute entropy = {attribute_entropy}')
+        # log.info(f'header = {header}, attribute_probability*attribute_entropy = {attribute_probability*attribute_entropy}')
+        entropy_after_split += attribute_probability*attribute_entropy
+    log.info(f'header = {header} entropy before split = {entropy_before_split}, entropy after split = {entropy_after_split}')
+    #TODO get rid of abs
+    gain = abs(entropy_before_split - entropy_after_split)
+    log.info(f'for header = {header}, gain = {gain}')
+    return gain
 
 
 def decision_tree_build():
@@ -132,11 +155,12 @@ def decision_tree_build():
     '''
     global headers
     log.info('entered decision_tree_build')
+    gains_per_header = dict()
     for header in headers:
-        header_entropy = get_header_entropy(header)
-        for attribute in header_attributes[header]:
-            attribute_entropy = get_attribute_value_entropy(header, attribute)
-    # get_gain(headers[0])
+        gains_per_header[header] = get_gain(header)
+    # gains_per_header[headers[6]] = get_gain(headers[6])
+    log.info(f'\ngains_per_header = {gains_per_header}')
+    
     pass
 
 
@@ -164,7 +188,13 @@ def print_accuracy():
 
 
 def main():
+    global train_data, headers, labels_column, classifiers
+    # classifiers = ['Apple', 'Lemon', 'Grape']
+
+    # headers = ['color', 'size','label']
+    # header_attributes = {}
     load_data()
+
     decision_tree_build()
     # print(f'train_data: {train_data}\n test_data: {test_data}')
 
