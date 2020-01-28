@@ -1,5 +1,7 @@
 '''!!!! Works only with short amount of input data because of stackoverflow !!!!!!'''
 
+#### Daniil Rolnik 334018009
+
 import numpy as np
 import pandas as pd
 import sys
